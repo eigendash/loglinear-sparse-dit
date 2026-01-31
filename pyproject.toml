@@ -1,0 +1,12 @@
+[project]
+name = "llsa-mlx"
+version = "0.1.0"
+description = "Log-linear sparse attention and a small pixel-space diffusion transformer, in MLX"
+requires-python = ">=3.10"
+dependencies = ["mlx>=0.22", "numpy"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
