@@ -85,3 +85,13 @@ def test_zorder_is_a_permutation_with_local_groups():
         rows, cols = perm[4 * g : 4 * g + 4] // 8, perm[4 * g : 4 * g + 4] % 8
         assert rows.max() - rows.min() == 1 and cols.max() - cols.min() == 1
         assert rows.min() % 2 == 0 and cols.min() % 2 == 0
+
+
+def test_backward_memory_stays_linear_in_sequence_length():
+    # A gather whose gradient scatters into a (rows, N, d) buffer would need ~1 GB here.
+    q, k, v = qkv(N=8192, d=64, H=1)
+    mx.eval(q, k, v)
+    mx.reset_peak_memory()
+    grads = mx.grad(lambda q, k, v: llsa(q, k, v, block=16, topk=8).sum(), argnums=(0, 1, 2))(q, k, v)
+    mx.eval(grads)
+    assert mx.get_peak_memory() < 400e6

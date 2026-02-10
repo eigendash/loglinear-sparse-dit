@@ -45,8 +45,15 @@ def keys_per_query(n, block, topk, levels=None, enrich=None):
 
 
 def _gather(x, idx):
-    """x (G, N, d), idx (G, T, C) -> (G, T, C, d)."""
-    return mx.take_along_axis(x[:, None], idx[..., None], axis=2)
+    """x (G, N, d), idx (G, T, C) -> (G, T, C, d).
+
+    Rows are fetched from a flattened (G*N, d) table. Broadcasting x across T and
+    using take_along_axis looks equivalent, but its gradient scatters into a dense
+    (G, T, N, d) buffer, which brings back the quadratic memory this method avoids.
+    """
+    G, N, d = x.shape
+    flat = (idx + (mx.arange(G) * N)[:, None, None]).reshape(-1)
+    return x.reshape(G * N, d)[flat].reshape(*idx.shape, d)
 
 
 def _pyramid(x, block, levels):
