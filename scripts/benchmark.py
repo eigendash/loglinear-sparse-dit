@@ -17,11 +17,15 @@ from llsa import full_attention, keys_per_query, llsa  # noqa: E402
 
 
 def timed(fn, iters):
-    mx.eval(fn())
-    start = time.perf_counter()
-    for _ in range(iters):
+    """Mean milliseconds per call, or None if Metal cannot allocate the buffers."""
+    try:
         mx.eval(fn())
-    return (time.perf_counter() - start) / iters * 1000
+        start = time.perf_counter()
+        for _ in range(iters):
+            mx.eval(fn())
+        return (time.perf_counter() - start) / iters * 1000
+    except RuntimeError:
+        return None
 
 
 def main():
@@ -55,7 +59,8 @@ def main():
             timed(lambda: grad_sparse(q, k, v), args.iters),
         ]
         keys = keys_per_query(n, args.block, args.topk)
-        print(f"| {n} | {keys} | " + " | ".join(f"{t:.1f}" for t in row) + " |", flush=True)
+        cells = ["out of memory" if t is None else f"{t:.1f}" for t in row]
+        print(f"| {n} | {keys} | " + " | ".join(cells) + " |", flush=True)
 
 
 if __name__ == "__main__":
